@@ -8,4 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Use gunicorn as the entrypoint with workers that can handle async
-CMD ["python", "agent.py"]
+CMD ["python", "agent.py", "start"]
