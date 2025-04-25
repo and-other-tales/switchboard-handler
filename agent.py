@@ -10,6 +10,8 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated, Optional
+import http.server
+import threading
 
 from livekit import rtc, api
 from livekit import agents
@@ -251,5 +253,34 @@ async def entrypoint(ctx: JobContext) -> None:
             userdata.livekit_api = None
 
 
+class HealthCheckHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(b'OK')
+
+def run_http_server(port=8080):
+    """Run a simple HTTP server for health checks on the specified port"""
+    server = http.server.HTTPServer(('0.0.0.0', port), HealthCheckHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    return server
+
 if __name__ == "__main__":
-    agents.cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
+    import argparse
+    parser = argparse.ArgumentParser(description='LiveKit Phone Assistant')
+    parser.add_argument('--port', type=int, default=8080, help='HTTP port for health checks')
+    parser.add_argument('action', choices=['start'], help='Action to perform')
+    
+    args, remaining = parser.parse_known_args()
+    
+    # Start HTTP server for health check
+    server = run_http_server(args.port)
+    logger.info(f"HTTP server started on port {args.port}")
+    
+    try:
+        # Run the agent
+        agents.cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
+    finally:
+        server.shutdown()
