@@ -1,0 +1,5 @@
+livekit-api
+livekit-agents
+livekit-plugins-openai
+python-dotenv
+# asyncio and logging are part of the standard library
